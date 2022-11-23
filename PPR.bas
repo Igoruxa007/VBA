@@ -3,6 +3,9 @@ Sub PZ()
 Attribute PZ.VB_ProcData.VB_Invoke_Func = " \n14"
 '
 ' Создание производственного задания из ППР
+' Удалить лишние месяцы
+' Вбить количество дней в месяце
+n_day = 31 ' !!!!!!!!!
 
 Application.ScreenUpdating = False
 
@@ -23,89 +26,123 @@ Dim pst(15) As String
     pst(13) = ""
     pst(14) = ""
     pst(15) = ""
-    
 
-' Удаляем заголовок
-    Rows("1:10").Select
-    Selection.Delete Shift:=xlUp
-
-' Удаляем календарь
-    Columns("K:AO").Select
+' Удаляем ненужные колонки
+    Columns("I:J").Select
     Selection.Delete Shift:=xlToLeft
 
-' Удаляем лишние столбцы
-
-    Columns("E:G").Select
-    Selection.Delete Shift:=xlToLeft
-    Columns("A:B").Select
-    Selection.Delete Shift:=xlToLeft
-
-' Подсчет количества записей по колонке с подстанциями
-count_of_records = 1
-Do While Cells(count_of_records + 1, "D") <> ""
-    count_of_records = count_of_records + 1
-Loop
-    
 ' Отмена объединения
-Range(Cells(1, "A").EntireColumn, Cells(1, "C").EntireColumn).Select
+Range(Cells(1, "A").EntireColumn, Cells(1, "J").EntireColumn).Select
 Selection.UnMerge
 
-For i = 2 To count_of_records
+For i = 2 To 1450
     If Cells(i, "A") = "" Then
         Cells(i, "A") = Cells(i - 1, "A")
         Cells(i, "B") = Cells(i - 1, "B")
         Cells(i, "C") = Cells(i - 1, "C")
+        Cells(i, "D") = Cells(i - 1, "D")
+        Cells(i, "E") = Cells(i - 1, "E")
+        Cells(i, "F") = Cells(i - 1, "F")
+        Cells(i, "G") = Cells(i - 1, "G")
+        Cells(i, "H") = Cells(i - 1, "H")
+    End If
+    If Cells(i, "A") <> "" And Cells(i, 3) = "" Then
+        Cells(i, "B") = Cells(i - 1, "B")
+        Cells(i, "C") = Cells(i - 1, "C")
+        Cells(i, "H") = Cells(i - 1, "H")
+        Cells(i, "H") = Cells(i - 1, "H")
     End If
 Next
 
-' Удаление строк без основного расчёта и больше не нужных колонок
-i = 2
+
+' Удаление строк без нужных подстанций
+i = 3
+
 Do While Cells(i, "A") <> ""
-    If Cells(i, "F") = "" Then
+
+log_condition = False
+
+    For j = 0 To 8
+        If Cells(i, 9) = pst(j) Then
+            log_condition = True
+            Exit For
+        End If
+    Next
+    
+    If log_condition = False Then
         Rows(i).Select
         Selection.Delete Shift:=xlUp
         i = i - 1
     End If
+        
     i = i + 1
-Loop
-Range(Cells(1, 4).EntireColumn, Cells(1, 5).EntireColumn).Select
-Selection.Delete Shift:=xlUp
-
-' Придание формы
-Columns("A:A").Select
-Selection.Insert Shift:=xlToRight
-
-i = 1
-Do While Cells(i, "B") <> ""
-    For j = 0 To 15
-        If Cells(i, "C") = arrOld(j) Then
-            Cells(i, "C") = arrNew(j)
-        End If
-    Next
-    
-    Cells(i, "A") = Cells(i, "C").Value & Cells(i, "B") & "."
-    
-    i = i + 1
+        
 Loop
 
-Range(Cells(1, 2).EntireColumn, Cells(1, 3).EntireColumn).Select
+
+' Обратное объединение
+i = 4
+j = 3
+Application.DisplayAlerts = False
+
+Do While Cells(i - 1, "A") <> ""
+    
+    If (Cells(i, 3) <> Cells(j, 3) Or Cells(i, 4) <> Cells(j, 4)) And i - j > 1 Then
+        For k = 1 To 8
+            Range(Cells(i - 1, k), Cells(j, k)).Select
+            Selection.Merge
+        Next
+        j = i
+    End If
+    
+    If (Cells(i, 3) <> Cells(j, 3) Or Cells(i, 4) <> Cells(j, 4)) And i - j = 1 Then
+        j = i
+    End If
+        
+    i = i + 1
+        
+Loop
+Application.DisplayAlerts = True
+
+
+' Выравнивание высоты строк
+i = 3
+Do While Cells(i, 9) <> ""
+    Rows(i).EntireRow.AutoFit
+    i = i + 1
+Loop
+
+' Вставляем числа месяца
+For j = 1 To n_day
+    Cells(1, 10 + j) = j
+Next
+
+' Рисуем границы
+Range(Cells(1, 11), Cells(i - 1, 10 + n_day)).Select
+With Selection.Borders(xlEdgeLeft)
+    .Weight = xlMedium
+End With
+With Selection.Borders(xlEdgeTop)
+    .Weight = xlMedium
+End With
+With Selection.Borders(xlEdgeBottom)
+    .Weight = xlMedium
+End With
+With Selection.Borders(xlEdgeRight)
+    .Weight = xlMedium
+End With
+With Selection.Borders(xlInsideVertical)
+    .Weight = xlThin
+End With
+With Selection.Borders(xlInsideHorizontal)
+    .Weight = xlThin
+End With
+
+' Наводим порядок в шапке
+Cells(1, 9) = Cells(2, 9)
+Cells(1, 10) = Cells(2, 10)
+Rows(2).Select
 Selection.Delete Shift:=xlUp
-
-Columns("C:C").Select
-Selection.Copy
-Columns("B:B").Select
-Selection.Insert Shift:=xlToRight
-
-Columns("C:C").Select
-Selection.Copy
-Columns("E:E").Select
-Selection.Insert Shift:=xlToRight
-
-Rows(1).Select
-Selection.Delete Shift:=xlUp
-
-Range(Cells(1, 1), Cells(i - 2, 5)).Select
-Selection.Copy
 
 Application.ScreenUpdating = True
 
